@@ -1,0 +1,13 @@
+# Quartus generated directories
+db/
+incremental_db/
+output_files/
+simulation/
+greybox_tmp/
+*.qws
+*.rpt
+*.done
+*.smsg
+*.jdi
+*.pin
+*.sld

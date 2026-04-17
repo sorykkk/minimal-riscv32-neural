@@ -15,11 +15,72 @@ TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
 GCC_WARNS += -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic # -Wconversion
-TOOLCHAIN_PREFIX = $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)i/bin/riscv32-unknown-elf-
+TOOLCHAIN_PREFIX = /opt/riscv32im/bin/riscv32-unknown-elf-
 COMPRESSED_ISA = C
 
 # Add things like "export http_proxy=... https_proxy=..." here
 GIT_ENV = true
+
+NEURAL_BASELINE_OBJS = neural/firmware/start.o neural/tests/inference_baseline.o
+NEURAL_MAC4_OBJS = neural/firmware/start.o neural/tests/inference_mac4.o
+
+# --- Baseline (software-only) neural inference ---
+
+test_neural: testbench_neural.vvp neural/firmware/firmware.hex
+	$(VVP) -N $< +firmware=neural/firmware/firmware.hex
+
+test_neural_vcd: testbench_neural.vvp neural/firmware/firmware.hex
+	$(VVP) -N $< +vcd +trace +noerror +firmware=neural/firmware/firmware.hex
+
+testbench_neural.vvp: testbench.v picorv32.v
+	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DNEURAL_SIM $^
+	chmod -x $@
+
+neural/firmware/firmware.hex: neural/firmware/firmware.bin firmware/makehex.py
+	$(PYTHON) firmware/makehex.py $< 32768 > $@
+
+neural/firmware/firmware.bin: neural/firmware/firmware.elf
+	$(TOOLCHAIN_PREFIX)objcopy -O binary $< $@
+	chmod -x $@
+
+neural/firmware/firmware.elf: $(NEURAL_BASELINE_OBJS) neural/firmware/sections.lds
+	$(TOOLCHAIN_PREFIX)gcc -Os -mabi=ilp32 -march=rv32im -ffreestanding -nostdlib -o $@ \
+		-Wl,--build-id=none,-Bstatic,-T,neural/firmware/sections.lds,-Map,neural/firmware/firmware.map,--strip-debug \
+		$(NEURAL_BASELINE_OBJS) -lgcc
+	chmod -x $@
+
+# --- MAC4-accelerated neural inference (future) ---
+
+test_neural_mac4: testbench_neural_mac4.vvp neural/firmware/firmware_mac4.hex
+	$(VVP) -N $< +firmware=neural/firmware/firmware_mac4.hex
+
+testbench_neural_mac4.vvp: testbench.v picorv32.v neural/rtl/picorv32_pcpi_mac.v
+	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DNEURAL_SIM -DNEURAL_MAC4 $^
+	chmod -x $@
+
+neural/firmware/firmware_mac4.hex: neural/firmware/firmware_mac4.bin firmware/makehex.py
+	$(PYTHON) firmware/makehex.py $< 32768 > $@
+
+neural/firmware/firmware_mac4.bin: neural/firmware/firmware_mac4.elf
+	$(TOOLCHAIN_PREFIX)objcopy -O binary $< $@
+	chmod -x $@
+
+neural/firmware/firmware_mac4.elf: $(NEURAL_MAC4_OBJS) neural/firmware/sections.lds
+	$(TOOLCHAIN_PREFIX)gcc -Os -mabi=ilp32 -march=rv32im -ffreestanding -nostdlib -o $@ \
+		-Wl,--build-id=none,-Bstatic,-T,neural/firmware/sections.lds,-Map,neural/firmware/firmware_mac4.map,--strip-debug \
+		$(NEURAL_MAC4_OBJS) -lgcc
+	chmod -x $@
+
+# --- Neural object file rules ---
+
+neural/firmware/start.o: neural/firmware/start.S
+	$(TOOLCHAIN_PREFIX)gcc -c -mabi=ilp32 -march=rv32im -o $@ $<
+
+neural/tests/inference_baseline.o: neural/tests/inference_baseline.c neural/data/model_weights.h
+	$(TOOLCHAIN_PREFIX)gcc -c -mabi=ilp32 -march=rv32im -Os --std=c99 -ffreestanding -nostdlib -o $@ $<
+
+neural/tests/inference_mac4.o: neural/tests/inference_mac4.c neural/data/model_weights.h
+	$(TOOLCHAIN_PREFIX)gcc -c -mabi=ilp32 -march=rv32im -Os --std=c99 -ffreestanding -nostdlib -o $@ $<
 
 test: testbench.vvp firmware/firmware.hex
 	$(VVP) -N $<
@@ -175,10 +236,12 @@ toc:
 clean:
 	rm -rf riscv-gnu-toolchain-riscv32i riscv-gnu-toolchain-riscv32ic \
 		riscv-gnu-toolchain-riscv32im riscv-gnu-toolchain-riscv32imc
-	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) check.smt2 check.vcd synth.v synth.log \
+	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) $(NEURAL_BASELINE_OBJS) $(NEURAL_MAC4_OBJS) check.smt2 check.vcd synth.v synth.log \
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
-		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench_ez.vvp \
+		neural/firmware/firmware.elf neural/firmware/firmware.bin neural/firmware/firmware.hex neural/firmware/firmware.map \
+		neural/firmware/firmware_mac4.elf neural/firmware/firmware_mac4.bin neural/firmware/firmware_mac4.hex neural/firmware/firmware_mac4.map \
+		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench_ez.vvp testbench_neural.vvp \
 		testbench_rvf.vvp testbench_wb.vvp testbench.vcd testbench.trace \
 		testbench_verilator testbench_verilator_dir
 
-.PHONY: test test_vcd test_sp test_axi test_wb test_wb_vcd test_ez test_ez_vcd test_synth download-tools build-tools toc clean
+.PHONY: test test_vcd test_sp test_axi test_wb test_wb_vcd test_ez test_ez_vcd test_synth test_neural test_neural_vcd test_neural_mac4 download-tools build-tools toc clean

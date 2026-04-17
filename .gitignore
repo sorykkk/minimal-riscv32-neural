@@ -35,3 +35,6 @@
 /synth.log
 /synth.v
 .*.swp
+
+/riscv-gnu-toolchain-riscv32im/
+*.vvp

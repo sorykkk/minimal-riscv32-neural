@@ -1,0 +1,26 @@
+/opt/riscv32im/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32im -Os --std=c99 -ffreestanding -nostdlib -o neural/tests/inference_baseline.o neural/tests/inference_baseline.c
+/opt/riscv32im/bin/riscv32-unknown-elf-gcc -Os -mabi=ilp32 -march=rv32im -ffreestanding -nostdlib -o neural/firmware/firmware.elf \
+	-Wl,--build-id=none,-Bstatic,-T,neural/firmware/sections.lds,-Map,neural/firmware/firmware.map,--strip-debug \
+	neural/firmware/start.o neural/tests/inference_baseline.o -lgcc
+chmod -x neural/firmware/firmware.elf
+/opt/riscv32im/bin/riscv32-unknown-elf-objcopy -O binary neural/firmware/firmware.elf neural/firmware/firmware.bin
+chmod -x neural/firmware/firmware.bin
+python3 firmware/makehex.py neural/firmware/firmware.bin 32768 > neural/firmware/firmware.hex
+vvp -N testbench_neural.vvp +firmware=neural/firmware/firmware.hex
+Running PURE INTEGER C Inference on MNIST...
+--------------------------------------------
+Actual: 0 | Predicted: 0 (confidence: 96%) [cycles: 4316215]
+Actual: 1 | Predicted: 1 (confidence: 100%) [cycles: 4316146]
+Actual: 2 | Predicted: 2 (confidence: 91%) [cycles: 4316207]
+Actual: 3 | Predicted: 3 (confidence: 49%) [cycles: 4316218]
+Actual: 4 | Predicted: 4 (confidence: 81%) [cycles: 4316197]
+Actual: 5 | Predicted: 5 (confidence: 61%) [cycles: 4316196]
+Actual: 6 | Predicted: 6 (confidence: 84%) [cycles: 4316218]
+Actual: 7 | Predicted: 7 (confidence: 74%) [cycles: 4316166]
+Actual: 8 | Predicted: 8 (confidence: 88%) [cycles: 4316176]
+Actual: 9 | Predicted: 9 (confidence: 82%) [cycles: 4316172]
+--------------------------------------------
+Accuracy: 10/10
+Total cycles (10 images): 43161911
+Avg cycles per image: 4316191
+OUT-OF-BOUNDS MEMORY READ FROM 20000000
