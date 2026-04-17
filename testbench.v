@@ -28,7 +28,11 @@ module testbench #(
 			$dumpfile("testbench.vcd");
 			$dumpvars(0, testbench);
 		end
+`ifdef NEURAL_SIM
+		repeat (100000000) @(posedge clk);
+`else
 		repeat (1000000) @(posedge clk);
+`endif
 		$display("TIMEOUT");
 		$finish;
 	end

@@ -1,6 +1,68 @@
-#include <stdio.h>
 #include <stdint.h>
-#include "../data/model_data.h"
+#include "../data/model_weights.h"
+
+// GCC emits calls to memset for array = {0} initialization
+void *memset(void *s, int c, unsigned int n)
+{
+	char *p = s;
+	while (n--)
+		*p++ = (char)c;
+	return s;
+}
+
+// GCC emits calls to memcpy for struct/array copies
+void *memcpy(void *dest, const void *src, unsigned int n)
+{
+	char *d = dest;
+	const char *s = src;
+	while (n--)
+		*d++ = *s++;
+	return dest;
+}
+
+// I/O port for character output (directly to testbench console)
+#define OUTPORT 0x10000000
+
+static void print_chr(char ch)
+{
+	*((volatile uint32_t*)OUTPORT) = ch;
+}
+
+static void print_str(const char *p)
+{
+	while (*p != 0)
+		*((volatile uint32_t*)OUTPORT) = *(p++);
+}
+
+static void print_dec(unsigned int val)
+{
+	char buffer[10];
+	char *p = buffer;
+	while (val || p == buffer) {
+		*(p++) = val % 10;
+		val = val / 10;
+	}
+	while (p != buffer)
+		*((volatile uint32_t*)OUTPORT) = '0' + *(--p);
+}
+
+static void print_signed(int32_t val)
+{
+	if (val < 0) {
+		print_chr('-');
+		print_dec((unsigned int)(-val));
+	} else {
+		print_dec((unsigned int)val);
+	}
+}
+
+// Read PicoRV32 cycle counter (rdcycle CSR)
+static inline uint32_t rdcycle(void)
+{
+	uint32_t c;
+	__asm__ volatile ("rdcycle %0" : "=r"(c));
+	return c;
+}
 
 // Forward pass using 100% Integer Math
 void run_inference(const int8_t* img, int32_t* out) {
@@ -86,15 +148,20 @@ int main() {
         sample_img_5, sample_img_6, sample_img_7, sample_img_8, sample_img_9
     };
 
-    printf("Running PURE INTEGER C Inference on MNIST...\n");
-    printf("--------------------------------------------\n");
+    print_str("Running PURE INTEGER C Inference on MNIST...\n");
+    print_str("--------------------------------------------\n");
 
     int correct_count = 0;
+    uint32_t total_cycles = 0;
 
     for (int target = 0; target < 10; target++) {
         int32_t predictions[10] = {0}; // Store raw INT32 logits
         
+        uint32_t cyc_start = rdcycle();
         run_inference(test_images[target], predictions);
+        uint32_t cyc_end = rdcycle();
+        uint32_t cyc_elapsed = cyc_end - cyc_start;
+        total_cycles += cyc_elapsed;
         
         // Argmax: Find the index with the highest INT32 score
         int best_class = 0;
@@ -105,15 +172,38 @@ int main() {
                 best_class = i;
             }
         }
+
+        // Confidence: winner's share of total positive scores (integer %)
+        int32_t pos_sum = 0;
+        for (int i = 0; i < 10; i++)
+            if (predictions[i] > 0)
+                pos_sum += predictions[i];
+        int confidence = (pos_sum > 0) ? (int)((100 * (int64_t)max_score) / pos_sum) : 0;
         
-        printf("Actual: %d | Predicted: %d (Raw INT32 Score: %d)\n", target, best_class, max_score);
+        print_str("Actual: ");
+        print_dec(target);
+        print_str(" | Predicted: ");
+        print_dec(best_class);
+        print_str(" (confidence: ");
+        print_dec(confidence);
+        print_str("%) [cycles: ");
+        print_dec(cyc_elapsed);
+        print_str("]\n");
         if (best_class == target) {
             correct_count++;
         }
     }
 
-    printf("--------------------------------------------\n");
-    printf("Accuracy: %d/10\n", correct_count);
+    print_str("--------------------------------------------\n");
+    print_str("Accuracy: ");
+    print_dec(correct_count);
+    print_str("/10\n");
+    print_str("Total cycles (10 images): ");
+    print_dec(total_cycles);
+    print_str("\n");
+    print_str("Avg cycles per image: ");
+    print_dec(total_cycles / 10);
+    print_str("\n");
 
     return 0;
 }

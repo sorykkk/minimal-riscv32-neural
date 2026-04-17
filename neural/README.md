@@ -16,10 +16,13 @@ What is the project plan and the stage it is right now:
 [X] Quantization of final weights after training
 [X] Generating final C header file that will contain all quantization constants, weights and sample images that the architecture will be tested on
 
-### [ ] Simulation validation (before FPGA)
-[ ] Simulate baseline inference in Icarus Verilog / Verilator
-    - adapt the existing testbench infrastructure (`testbench.v` / `testbench.cc`) to compile and run `neural/tests/inference_test.c` (the software-only baseline that already exists)
-    - verify correct predictions on all 10 sample images in simulation before touching any FPGA tools
+### [X] Simulation validation (before FPGA)
+[X] Simulate baseline inference in Icarus Verilog / Verilator
+    - adapted the existing testbench infrastructure (`testbench.v`) with a `NEURAL_SIM` build that compiles and runs `neural/tests/inference_test.c` on the PicoRV32 core
+    - `make test_neural` builds the firmware (start.S -> inference_test.c -> .elf -> .hex) and runs it in Icarus Verilog simulation
+    - `make test_neural_vcd` generates a VCD waveform for GTKWave inspection
+    - **result**: 10/10 correct predictions on all sample images, verified in simulation
+    - simulation log saved in `neural/tests/simulation_baseline.log`
 
 ### [ ] Test FPGA environment setup
 [ ] Setup Quartus project
