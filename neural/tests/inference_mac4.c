@@ -105,7 +105,7 @@ void run_inference(const int8_t* img, int32_t* out) {
     // Flattened pooling output for FC layer (packed access)
     int8_t flat[676];
 
-    // Pre-pad conv weights: 3x3 kernel → 3 rows of 4 (zero-padded 4th element)
+    // Pre-pad conv weights: 3x3 kernel -> 3 rows of 4 (zero-padded 4th element)
     // This lets us issue 3 MAC4 instructions per output pixel instead of 9 scalar MACs.
     // Layout per filter: {w0,w1,w2,0, w3,w4,w5,0, w6,w7,w8,0}
     int8_t conv1_w_pad[4][12];
@@ -118,7 +118,7 @@ void run_inference(const int8_t* img, int32_t* out) {
         }
     }
 
-    // 1. Conv2D Layer — accelerated with MAC4
+    // 1. Conv2D Layer - accelerated with MAC4
     //    For each kernel row, read 4 consecutive image bytes (the 4th is a
     //    don't-care pixel that gets multiplied by the zero-padded weight).
     //    3 MAC4 calls replace 9 scalar multiply-adds per output pixel.
