@@ -24,8 +24,8 @@ What is the project plan and the stage it is right now:
     - **result**: 10/10 correct predictions on all sample images, verified in simulation
     - simulation log saved in `neural/tests/simulation_baseline.log`
 
-### [ ] Test FPGA environment setup
-[ ] Setup Quartus project
+### [X] Test FPGA environment setup
+[X] Setup Quartus project
     - create project targeting EP2C35F672C6 chip (Cyclone II, DE2 board)
     - import `picorv32.v` from repository
     - **note**: the existing `scripts/quartus/system.v` already contains a PicoRV32 + BRAM wrapper - adapt it instead of writing from scratch. It targets Cyclone IV so the `.qsf` pin assignments and device must be changed to EP2C35F672C6
