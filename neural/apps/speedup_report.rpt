@@ -1,0 +1,76 @@
+===============================================================================
+  MAC4 Coprocessor Speedup Report
+  PicoRV32 + PCPI 4-way INT8 MAC Accelerator
+  Generated from Icarus Verilog simulation logs
+===============================================================================
+
+Architecture
+------------
+  CPU core      : PicoRV32 (rv32im)
+  Coprocessor   : picorv32_pcpi_mac  (opcode 0x2B, custom1)
+  Operation     : 4-way packed int8 multiply-accumulate
+  Simulation    : Icarus Verilog (behavioral)
+
+Neural Network
+--------------
+  Model         : TinyCNN for MNIST (int8 quantized)
+  Conv2D        : 1 input ch -> 4 filters, 3x3 kernel, ReLU
+  MaxPool2D     : 2x2, stride 2
+  FC (Dense)    : 676 -> 10
+  Test set      : 10 pre-loaded sample images (digits 0-9)
+
+===============================================================================
+  Per-Image Cycle Counts
+===============================================================================
+
+  Image   Baseline (cycles)   MAC4 (cycles)   Speedup
+  -----   -----------------   -------------   -------
+    0         4,316,215         1,543,878       2.80x
+    1         4,316,146         1,543,819       2.80x
+    2         4,316,207         1,543,870       2.80x
+    3         4,316,218         1,543,886       2.80x
+    4         4,316,197         1,543,880       2.80x
+    5         4,316,196         1,543,866       2.80x
+    6         4,316,218         1,543,896       2.80x
+    7         4,316,166         1,543,841       2.80x
+    8         4,316,176         1,543,845       2.80x
+    9         4,316,172         1,543,849       2.80x
+
+===============================================================================
+  Summary
+===============================================================================
+
+  Metric                    Baseline         MAC4        Improvement
+  ------                    --------         ----        -----------
+  Total cycles (10 imgs)    43,161,911       15,438,630      -64.2%
+  Avg cycles / image         4,316,191        1,543,863      -64.2%
+  Accuracy                       10/10            10/10          0
+  Overall speedup                   --               --       2.80x
+
+===============================================================================
+  Analysis
+===============================================================================
+
+  The MAC4 coprocessor achieves a 2.80x overall speedup on end-to-end
+  inference.  This covers all three computational stages:
+
+    1. Conv2D layer
+       - 3x3 kernel zero-padded to 3 rows of 4 weights
+       - 3 MAC4 instructions replace 9 scalar multiply-adds per pixel
+       - 4 filters x 26 x 26 output pixels x 3 MAC4 calls = 8,112 MAC4 ops
+
+    2. MaxPool2D layer
+       - Scalar comparisons only (no MAC4 benefit)
+
+    3. Fully Connected layer
+       - 676 inputs per output neuron, exactly divisible by 4
+       - 10 neurons x 169 MAC4 calls = 1,690 MAC4 ops
+       - Largest relative benefit: replaces 6,760 scalar MACs
+
+  Total MAC4 instructions per image: 9,802
+  Replaced scalar MACs per image:   31,096
+
+  Correctness is preserved: both versions produce identical predictions
+  and confidence scores for all 10 test images.
+
+===============================================================================

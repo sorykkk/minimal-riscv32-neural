@@ -18,11 +18,11 @@ What is the project plan and the stage it is right now:
 
 ### [X] Simulation validation (before FPGA)
 [X] Simulate baseline inference in Icarus Verilog / Verilator
-    - adapted the existing testbench infrastructure (`testbench.v`) with a `NEURAL_SIM` build that compiles and runs `neural/tests/inference_test.c` on the PicoRV32 core
+    - adapted the existing testbench infrastructure (`testbench.v`) with a `NEURAL_SIM` build that compiles and runs `neural/apps/inference_baseline.c` on the PicoRV32 core
     - `make test_neural` builds the firmware (start.S -> inference_test.c -> .elf -> .hex) and runs it in Icarus Verilog simulation
     - `make test_neural_vcd` generates a VCD waveform for GTKWave inspection
     - **result**: 10/10 correct predictions on all sample images, verified in simulation
-    - simulation log saved in `neural/tests/simulation_baseline.log`
+    - simulation log saved in `neural/apps/simulation_baseline.log`
 
 ### [X] Test FPGA environment setup
 [X] Setup Quartus project
@@ -36,30 +36,30 @@ What is the project plan and the stage it is right now:
     - write a tiny C program that toggles a memory-mapped output. Compile using the RISC-V GCC toolchain into a `.mif` (Memory Initialization File)
     - load the `.mif` into the RAM block, compile the project and program the DE2. Map the output to the DE2's green LEDs to verify the CPU is running
 
-### [ ] The AI Hardware Coprocessor
-[ ] Create `picorv32_pcpi_mac.v`
+### [X] The AI Hardware Coprocessor
+[X] Create `picorv32_pcpi_mac.v`
     - model it after `picorv32_pcpi_mul.v` (defined in `picorv32.v`). It must implement the PCPI protocol: assert `pcpi_wait` to claim the instruction, then `pcpi_ready` + `pcpi_wr` + `pcpi_rd` when the result is ready
     - use **opcode `0x2B`** (custom1) to avoid conflicts with the existing IRQ custom ops on `0x0B` (getq, setq, retirq, etc. in `firmware/custom_ops.S`)
-[ ] Implement the 4-way MAC logic
+[X] Implement the 4-way MAC logic
     - take two 32-bit registers, treat each as four packed int8 values
     - compute: `A0*B0 + A1*B1 + A2*B2 + A3*B3` (result is int32)
     - leverage Cyclone II's embedded 18x18 multipliers (35 available) for the four 8-bit multiplies
     - this can complete in 1-2 clock cycles since the multiplies are parallel
-[ ] Wire it to core
+[X] Wire it to core
     - **important**: if using `ENABLE_MUL` or `ENABLE_DIV` (needed for rv32im), set those parameters to use the *internal* multiplier (`ENABLE_MUL=1`, not the PCPI-based `picorv32_pcpi_mul`), so the PCPI bus is free for the MAC coprocessor
     - in the top-level wrapper, instantiate the MAC coprocessor and connect its `pcpi_*` wires to the core's `pcpi_*` ports. Set `ENABLE_PCPI=1`
-[ ] Simulate coprocessor
+[X] Simulate coprocessor
     - test the MAC coprocessor in Icarus Verilog simulation before synthesizing to FPGA. Verify with known input pairs that the packed int8 MAC produces correct results
 
-### [ ] Testing the software integration
-[ ] Define custom instruction macro
+### [X] Testing the software integration
+[X] Define custom instruction macro
     - use opcode `0x2B` (custom1), with a unique funct3/funct7 combination:
     ```c
     #define MAC4(rd, rs1, rs2) \
         asm volatile (".insn r 0x2B, 0, 0, %0, %1, %2" : "=r"(rd) : "r"(rs1), "r"(rs2))
     ```
-[ ] Write accelerated inference code
-    - start from the existing baseline in `neural/tests/inference_test.c`
+[X] Write accelerated inference code
+    - start from the existing baseline in `neural/apps/inference_baseline.c`
     - pack 4 consecutive int8 weights and 4 consecutive int8 activations into 32-bit registers, then use `MAC4` to process them in one instruction
     - **note**: the conv layer kernel is only 3x3 (9 values per filter) - not cleanly divisible by 4. The FC layer (676 inputs per output) benefits much more from MAC4. Focus optimization on the FC layer first
     - measure cycle counts (using PicoRV32's `rdcycle` CSR) for both baseline and MAC4 versions, produce a speedup report
