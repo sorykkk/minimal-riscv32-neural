@@ -21,8 +21,8 @@ COMPRESSED_ISA = C
 # Add things like "export http_proxy=... https_proxy=..." here
 GIT_ENV = true
 
-NEURAL_BASELINE_OBJS = neural/firmware/start.o neural/tests/inference_baseline.o
-NEURAL_MAC4_OBJS = neural/firmware/start.o neural/tests/inference_mac4.o
+NEURAL_BASELINE_OBJS = neural/firmware/start.o neural/apps/inference_baseline.o
+NEURAL_MAC4_OBJS = neural/firmware/start_noirq.o neural/apps/inference_mac4.o
 
 # --- Baseline (software-only) neural inference ---
 
@@ -76,10 +76,13 @@ neural/firmware/firmware_mac4.elf: $(NEURAL_MAC4_OBJS) neural/firmware/sections.
 neural/firmware/start.o: neural/firmware/start.S
 	$(TOOLCHAIN_PREFIX)gcc -c -mabi=ilp32 -march=rv32im -o $@ $<
 
-neural/tests/inference_baseline.o: neural/tests/inference_baseline.c neural/data/model_weights.h
+neural/firmware/start_noirq.o: neural/firmware/start_noirq.S
+	$(TOOLCHAIN_PREFIX)gcc -c -mabi=ilp32 -march=rv32im -o $@ $<
+
+neural/apps/inference_baseline.o: neural/apps/inference_baseline.c neural/data/model_weights.h
 	$(TOOLCHAIN_PREFIX)gcc -c -mabi=ilp32 -march=rv32im -Os --std=c99 -ffreestanding -nostdlib -o $@ $<
 
-neural/tests/inference_mac4.o: neural/tests/inference_mac4.c neural/data/model_weights.h
+neural/apps/inference_mac4.o: neural/apps/inference_mac4.c neural/data/model_weights.h
 	$(TOOLCHAIN_PREFIX)gcc -c -mabi=ilp32 -march=rv32im -Os --std=c99 -ffreestanding -nostdlib -o $@ $<
 
 test: testbench.vvp firmware/firmware.hex

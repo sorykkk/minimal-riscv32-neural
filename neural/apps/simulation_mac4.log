@@ -1,0 +1,19 @@
+vvp -N testbench_neural_mac4.vvp +firmware=neural/firmware/firmware_mac4.hex
+Running MAC4-ACCELERATED Inference on MNIST...
+-----------------------------------------------
+Actual: 0 | Predicted: 0 (confidence: 96%) [cycles: 1543878]
+Actual: 1 | Predicted: 1 (confidence: 100%) [cycles: 1543819]
+Actual: 2 | Predicted: 2 (confidence: 91%) [cycles: 1543870]
+Actual: 3 | Predicted: 3 (confidence: 49%) [cycles: 1543886]
+Actual: 4 | Predicted: 4 (confidence: 81%) [cycles: 1543880]
+Actual: 5 | Predicted: 5 (confidence: 61%) [cycles: 1543866]
+Actual: 6 | Predicted: 6 (confidence: 84%) [cycles: 1543896]
+Actual: 7 | Predicted: 7 (confidence: 74%) [cycles: 1543841]
+Actual: 8 | Predicted: 8 (confidence: 88%) [cycles: 1543845]
+Actual: 9 | Predicted: 9 (confidence: 82%) [cycles: 1543849]
+-----------------------------------------------
+Accuracy: 10/10
+Total cycles (10 images): 15438630
+Avg cycles per image: 1543863
+TRAP after 15490292 clock cycles
+ALL TESTS PASSED.

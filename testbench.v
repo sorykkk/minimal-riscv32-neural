@@ -164,6 +164,18 @@ module picorv32_wrapper #(
 	wire [31:0] rvfi_mem_wdata;
 `endif
 
+`ifdef NEURAL_MAC4
+	// PCPI wires for MAC coprocessor
+	wire        pcpi_valid;
+	wire [31:0] pcpi_insn;
+	wire [31:0] pcpi_rs1;
+	wire [31:0] pcpi_rs2;
+	wire        pcpi_wr;
+	wire [31:0] pcpi_rd;
+	wire        pcpi_wait;
+	wire        pcpi_ready;
+`endif
+
 	picorv32_axi #(
 `ifndef SYNTH_TEST
 `ifdef SP_TEST
@@ -174,7 +186,12 @@ module picorv32_wrapper #(
 `endif
 		.ENABLE_MUL(1),
 		.ENABLE_DIV(1),
+`ifdef NEURAL_MAC4
+		.ENABLE_PCPI(1),
+		.ENABLE_IRQ(0),
+`else
 		.ENABLE_IRQ(1),
+`endif
 		.ENABLE_TRACE(1)
 `endif
 	) uut (
@@ -198,7 +215,19 @@ module picorv32_wrapper #(
 		.mem_axi_rvalid (mem_axi_rvalid ),
 		.mem_axi_rready (mem_axi_rready ),
 		.mem_axi_rdata  (mem_axi_rdata  ),
+`ifdef NEURAL_MAC4
+		.pcpi_valid     (pcpi_valid     ),
+		.pcpi_insn      (pcpi_insn      ),
+		.pcpi_rs1       (pcpi_rs1       ),
+		.pcpi_rs2       (pcpi_rs2       ),
+		.pcpi_wr        (pcpi_wr        ),
+		.pcpi_rd        (pcpi_rd        ),
+		.pcpi_wait      (pcpi_wait      ),
+		.pcpi_ready     (pcpi_ready     ),
+		.irq            (32'h0          ),
+`else
 		.irq            (irq            ),
+`endif
 `ifdef RISCV_FORMAL
 		.rvfi_valid     (rvfi_valid     ),
 		.rvfi_order     (rvfi_order     ),
@@ -247,6 +276,21 @@ module picorv32_wrapper #(
 		.rvfi_mem_wmask (rvfi_mem_wmask),
 		.rvfi_mem_rdata (rvfi_mem_rdata),
 		.rvfi_mem_wdata (rvfi_mem_wdata)
+	);
+`endif
+
+`ifdef NEURAL_MAC4
+	picorv32_pcpi_mac mac_copro (
+		.clk        (clk        ),
+		.resetn     (resetn     ),
+		.pcpi_valid (pcpi_valid ),
+		.pcpi_insn  (pcpi_insn  ),
+		.pcpi_rs1   (pcpi_rs1   ),
+		.pcpi_rs2   (pcpi_rs2   ),
+		.pcpi_wr    (pcpi_wr    ),
+		.pcpi_rd    (pcpi_rd    ),
+		.pcpi_wait  (pcpi_wait  ),
+		.pcpi_ready (pcpi_ready )
 	);
 `endif
 
