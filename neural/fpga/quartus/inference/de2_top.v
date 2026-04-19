@@ -151,8 +151,10 @@ module de2_top (
     // 0x2000_0000 : test pass/fail signal
     // 0x3000_0004 : 7-segment display register
     // 0x3000_0008 : Switch/key input register (read)
+    // 0x3000_000C : confidence LED bar register (write) -> LEDR[9:0]
 
     reg [31:0] seg7_reg;
+    reg [9:0]  led_conf_reg;
     reg [7:0]  out_byte;
     reg        out_byte_en;
 
@@ -198,6 +200,10 @@ module de2_top (
                 m_read_data <= {10'b0, SW[17:0], KEY[3:0]};
                 m_read_en   <= 1;
             end
+            else if (mem_addr == 32'h3000_000C && |mem_wstrb) begin
+                led_conf_reg <= mem_wdata[9:0];
+                mem_ready    <= 1;
+            end
         end
     end
 
@@ -230,12 +236,17 @@ module de2_top (
     // Output assignments
     // -------------------------------------------------------
 
+    // Green LED[0]: working state (CPU alive, not trapped)
     assign LEDG[0] = ~trap & resetn;
     assign LEDG[8:1] = 8'b0;
 
-    assign LEDR[0] = trap | ~resetn;
-    assign LEDR[17:1] = 17'b0;
+    // Red LED[17]: error / reset / non-working state
+    assign LEDR[17] = trap | ~resetn;
+    // Red LEDs [9:0]: confidence bar graph (software-driven)
+    assign LEDR[9:0] = led_conf_reg;
+    assign LEDR[16:10] = 7'b0;
 
+    // 7-segment display: show predicted digit on HEX0, blank others
     wire seg7_blank = (seg7_reg == 32'hFFFFFFFF);
     assign HEX0 = seg7_blank ? 7'b1111111 : seg7_decode(seg7_reg[3:0]);
     assign HEX1 = 7'b1111111;
