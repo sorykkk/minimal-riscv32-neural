@@ -41,7 +41,21 @@ module de2_top (
     // Clocking & Reset
     // -------------------------------------------------------
     wire clk = CLOCK_50;
-    wire resetn = KEY[0];
+
+    // Power-on reset generator + KEY[0] debounce.
+    // At FPGA configuration all regs are 0, so resetn starts LOW
+    // (active reset).  The counter counts up while KEY[0] is
+    // released (high).  resetn goes HIGH only after KEY[0] has
+    // been stable for 2^20 cycles (~21 ms at 50 MHz), which
+    // also filters mechanical key bounce.
+    reg [20:0] reset_cnt = 0;
+    always @(posedge clk) begin
+        if (!KEY[0])
+            reset_cnt <= 0;
+        else if (!reset_cnt[20])
+            reset_cnt <= reset_cnt + 1;
+    end
+    wire resetn = reset_cnt[20];
 
     // -------------------------------------------------------
     // CPU trap signal
@@ -203,6 +217,13 @@ module de2_top (
             else if (mem_addr == 32'h3000_000C && |mem_wstrb) begin
                 led_conf_reg <= mem_wdata[9:0];
                 mem_ready    <= 1;
+            end
+            else begin
+                // Unmapped address: complete the transaction so the
+                // CPU does not hang.  Reads get 0xFFFFFFFF.
+                m_read_data <= 32'hFFFFFFFF;
+                m_read_en   <= !mem_wstrb ? 1'b1 : 1'b0;
+                mem_ready   <= |mem_wstrb ? 1'b1 : 1'b0;
             end
         end
     end
