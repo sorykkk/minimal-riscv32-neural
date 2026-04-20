@@ -5,33 +5,33 @@ LEDR[9:0] = confidence bar graph
 [10000 ns] LEDR[9:0]: xxxxxxxxxx (x LEDs lit)
 [10000 ns] 7SEG: showing x
 [2000000 ns] Reset active: LEDG=0 LEDR[17]=1
-[2000000 ns] Reset released
+[2000000 ns] Reset released (waiting for debounce counter)
 PicoRV32 DE2 Inference Demo
 Flip SW[0]-SW[9] to classify MNIST images
-[112390000 ns] 7SEG: blanked
-[112690000 ns] LEDR[9:0]: 0000000000 (0 LEDs lit)
-[10002000000 ns] CPU booted: LEDG=1 LEDR[17]=0
+[112550000 ns] 7SEG: blanked
+[112850000 ns] LEDR[9:0]: 0000000000 (0 LEDs lit)
+[5002000000 ns] CPU booted: LEDG=1 LEDR[17]=0
 
 --- SW[3] on: classify image 3 ---
-Image 3: classifying... [55845110000 ns] 7SEG: showing 3
-[55847650000 ns] LEDR[9:0]: 0000011111 (1 LEDs lit)
+Image 3: classifying... [50844150000 ns] 7SEG: showing 3
+[50846690000 ns] LEDR[9:0]: 0000011111 (1 LEDs lit)
 predicted 3 (conf 49%)
 
 --- SW[7] on (SW[3]+SW[7]): classify image 7 ---
-Image 7: classifying... [105840230000 ns] 7SEG: showing 7
-[105842770000 ns] LEDR[9:0]: 0011111111 (0 LEDs lit)
+Image 7: classifying... [100839270000 ns] 7SEG: showing 7
+[100841810000 ns] LEDR[9:0]: 0011111111 (0 LEDs lit)
 predicted 7 (conf 74%)
 
 --- SW[7] off (SW[3] only): fall back to image 3 ---
-Image 3: classifying... [155841370000 ns] 7SEG: showing 3
-[155843910000 ns] LEDR[9:0]: 0000011111 (1 LEDs lit)
+Image 3: classifying... [150840410000 ns] 7SEG: showing 3
+[150842950000 ns] LEDR[9:0]: 0000011111 (1 LEDs lit)
 predicted 3 (conf 49%)
 
 --- SW[0] on (SW[0]+SW[3]): classify image 3 (highest wins) ---
 
 --- All switches off ---
-[170013570000 ns] 7SEG: blanked
-[170013870000 ns] LEDR[9:0]: 0000000000 (0 LEDs lit)
+[165012610000 ns] 7SEG: blanked
+[165012910000 ns] LEDR[9:0]: 0000000000 (0 LEDs lit)
 All switches off - display blanked
 
 === Simulation complete ===

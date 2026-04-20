@@ -45,17 +45,19 @@ module de2_top (
     // Power-on reset generator + KEY[0] debounce.
     // At FPGA configuration all regs are 0, so resetn starts LOW
     // (active reset).  The counter counts up while KEY[0] is
-    // released (high).  resetn goes HIGH only after KEY[0] has
-    // been stable for 2^20 cycles (~21 ms at 50 MHz), which
-    // also filters mechanical key bounce.
-    reg [20:0] reset_cnt = 0;
+    // released (high).  resetn goes HIGH only after the counter
+    // saturates, which also filters mechanical key bounce.
+    // synthesis: 2^20 cycles (~21 ms at 50 MHz)
+    // simulation: 2^3 cycles (fast)
+    parameter RESET_BITS = 20; // synthesis value; testbench overrides to 3
+    reg [RESET_BITS:0] reset_cnt = 0;
     always @(posedge clk) begin
         if (!KEY[0])
             reset_cnt <= 0;
-        else if (!reset_cnt[20])
+        else if (!reset_cnt[RESET_BITS])
             reset_cnt <= reset_cnt + 1;
     end
-    wire resetn = reset_cnt[20];
+    wire resetn = reset_cnt[RESET_BITS];
 
     // -------------------------------------------------------
     // CPU trap signal
