@@ -10,7 +10,8 @@ module de2_top_tb;
     wire [6:0]  HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, HEX6, HEX7;
 
     de2_top #(
-        .MEM_WORDS(12288)
+        .MEM_WORDS(12288),
+        .RESET_BITS(3)
     ) uut (
         .CLOCK_50(clk),
         .KEY(KEY),

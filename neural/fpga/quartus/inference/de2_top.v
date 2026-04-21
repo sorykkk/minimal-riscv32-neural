@@ -141,7 +141,9 @@ module de2_top (
     // -------------------------------------------------------
     // Memory (M4K BRAM inferred by Quartus)
     // -------------------------------------------------------
-    (* ramstyle = "M4K" *)
+    // ram_init_file: Quartus uses the .mif for M4K block initialization.
+    // $readmemh: Icarus Verilog uses the .hex for simulation.
+    (* ramstyle = "M4K", ram_init_file = "firmware.mif" *)
     reg [31:0] memory [0:MEM_WORDS-1];
     initial $readmemh("firmware.hex", memory);
 

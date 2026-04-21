@@ -24,11 +24,17 @@ led_test: led_test_firmware.hex led_test_firmware.mif
 led_test_firmware.hex: led_test_firmware.bin
 	$(PYTHON) $(ROOT_DIR)/firmware/makehex.py $< $(MEM_WORDS) > $@
 
-# Quartus actually auto-converts the $readmemh to its own .mif internally. 
-# The hex2mif.py script is there as a backup if it will ever be needed
-# to manually provide a .mif (e.g., for an explicit altsyncram instantiation instead of inferred RAM).
+# Quartus actually auto-converts the $readmemh to its own .mif internally.
+# However, by providing an explicit .mif and using the ram_init_file
+# attribute, we guarantee correct M4K initialisation on Cyclone II.
 led_test_firmware.mif: led_test_firmware.hex
 	$(PYTHON) ../hex2mif.py $< $(MEM_WORDS) > $@
+
+# Install firmware files for Quartus compilation
+install: led_test_firmware.hex led_test_firmware.mif
+	cp led_test_firmware.hex firmware.hex
+	cp led_test_firmware.mif firmware.mif
+	@echo "firmware.hex + firmware.mif ready for Quartus compilation"
 
 led_test_firmware.bin: led_test_firmware.elf
 	$(TOOLCHAIN_PREFIX)objcopy -O binary $< $@

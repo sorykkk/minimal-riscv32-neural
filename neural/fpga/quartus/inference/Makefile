@@ -66,14 +66,16 @@ inference_mac4.o: $(NEURAL_DIR)/tests/inference_mac4.c $(NEURAL_DIR)/data/model_
 	$(TOOLCHAIN_PREFIX)gcc -c -mabi=ilp32 -march=rv32im -Os --std=c99 \
 		-ffreestanding -nostdlib -o $@ $<
 
-# Copy firmware.hex for Quartus (it reads firmware.hex via $readmemh)
-install: demo_firmware.hex
+# Copy firmware.hex and firmware.mif for Quartus (it reads firmware.mif via ram_init_file)
+install: demo_firmware.hex demo_firmware.mif
 	cp demo_firmware.hex firmware.hex
-	@echo "firmware.hex ready for Quartus compilation"
+	cp demo_firmware.mif firmware.mif
+	@echo "firmware.hex + firmware.mif ready for Quartus compilation"
 
-install_batch: inference_firmware.hex
+install_batch: inference_firmware.hex inference_firmware.mif
 	cp inference_firmware.hex firmware.hex
-	@echo "firmware.hex (batch) ready for Quartus compilation"
+	cp inference_firmware.mif firmware.mif
+	@echo "firmware.hex + firmware.mif (batch) ready for Quartus compilation"
 
 # -------------------------------------------------------
 # Simulation (Icarus Verilog)
@@ -81,10 +83,12 @@ install_batch: inference_firmware.hex
 
 sim: demo_firmware.hex de2_sim.vvp
 	cp demo_firmware.hex firmware.hex
+	cp demo_firmware.mif firmware.mif
 	vvp de2_sim.vvp | tee sim_demo.log
 
 sim_batch: inference_firmware.hex de2_sim.vvp
 	cp inference_firmware.hex firmware.hex
+	cp inference_firmware.mif firmware.mif
 	vvp de2_sim.vvp | tee sim_inference.log
 
 de2_sim.vvp: de2_top.v de2_top_tb.v $(NEURAL_DIR)/rtl/picorv32_pcpi_mac.v $(ROOT_DIR)/picorv32.v

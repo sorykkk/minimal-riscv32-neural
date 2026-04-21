@@ -43,8 +43,21 @@ module de2_top (
     // -------------------------------------------------------
     wire clk = CLOCK_50;
 
-    // KEY[0] is active-low pushbutton, directly usable as resetn
-    wire resetn = KEY[0];
+    // Power-on reset generator + KEY[0] debounce.
+    // At FPGA configuration all regs are 0, so resetn starts LOW
+    // (active reset).  The counter counts up while KEY[0] is
+    // released (high).  resetn goes HIGH only after the counter
+    // saturates, which also filters mechanical key bounce.
+    // PicoRV32 REQUIRES resetn LOW for at least one cycle.
+    parameter RESET_BITS = 20; // ~21 ms at 50 MHz; testbench overrides to 3
+    reg [RESET_BITS:0] reset_cnt = 0;
+    always @(posedge clk) begin
+        if (!KEY[0])
+            reset_cnt <= 0;
+        else if (!reset_cnt[RESET_BITS])
+            reset_cnt <= reset_cnt + 1;
+    end
+    wire resetn = reset_cnt[RESET_BITS];
 
     // -------------------------------------------------------
     // CPU trap signal
@@ -92,7 +105,9 @@ module de2_top (
     // -------------------------------------------------------
     // Separate always block with clean read/write pattern so
     // Quartus can infer M4K block RAM with byte-write enables
-    (* ramstyle = "M4K" *)
+    // ram_init_file: Quartus uses the .mif for M4K block initialization.
+    // $readmemh: Icarus Verilog uses the .hex for simulation.
+    (* ramstyle = "M4K", ram_init_file = "firmware.mif" *)
     reg [31:0] memory [0:MEM_WORDS-1];
     initial $readmemh("firmware.hex", memory);
 
@@ -169,6 +184,13 @@ module de2_top (
             else if (mem_addr == 32'h3000_0008 && !mem_wstrb) begin
                 m_read_data <= {10'b0, SW[17:0], KEY[3:0]};
                 m_read_en   <= 1;
+            end
+            else begin
+                // Unmapped address: complete the transaction so the
+                // CPU does not hang.  Reads get 0xFFFFFFFF.
+                m_read_data <= 32'hFFFFFFFF;
+                m_read_en   <= !mem_wstrb ? 1'b1 : 1'b0;
+                mem_ready   <= |mem_wstrb ? 1'b1 : 1'b0;
             end
         end
     end
