@@ -197,6 +197,14 @@ void main(void)
 	print("PicoRV32 DE2 Inference Demo\n");
 	print("Flip SW[0]-SW[9] to classify MNIST images\n");
 
+	// ---- Startup diagnostic: visible proof that firmware runs ----
+	// Show 'F' (0xF) on HEX0 and light all confidence LEDs briefly.
+	// If you see this on the board, the firmware is alive.
+	SEG7_REG = 0xF;
+	LED_REG  = 0x3FF;   // all 10 red confidence LEDs on
+	for (volatile int i = 0; i < 2000000; i++) {}  // ~40 ms at 50 MHz
+	// ---- End startup diagnostic ----
+
 	// Blank display and LEDs at start
 	SEG7_REG = 0xFFFFFFFF;
 	LED_REG  = 0;

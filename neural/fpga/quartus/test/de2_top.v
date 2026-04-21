@@ -105,11 +105,14 @@ module de2_top (
     // -------------------------------------------------------
     // Separate always block with clean read/write pattern so
     // Quartus can infer M4K block RAM with byte-write enables
-    // ram_init_file: Quartus uses the .mif for M4K block initialization.
-    // $readmemh: Icarus Verilog uses the .hex for simulation.
+    // Synthesis: ram_init_file tells Quartus to initialise M4K blocks.
+    // Simulation: $readmemh loads the hex into the behavioural model.
     (* ramstyle = "M4K", ram_init_file = "firmware.mif" *)
     reg [31:0] memory [0:MEM_WORDS-1];
+
+    // synthesis translate_off
     initial $readmemh("firmware.hex", memory);
+    // synthesis translate_on
 
     wire [13:0] mem_word_addr = mem_addr[15:2];  // word index (byte addr >> 2)
     wire        mem_addr_is_ram = (mem_addr[31:16] == 0) && (mem_word_addr < MEM_WORDS);
