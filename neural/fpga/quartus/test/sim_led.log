@@ -1,0 +1,37 @@
+[10000 ns] 7SEG: showing x
+PicoRV32 DE2 Switch Test
+[35710000 ns] 7SEG: blanked
+
+--- SW[0] on ---
+[50013170000 ns] 7SEG: showing 0
+Showing: 0 (SW[0])
+
+--- SW[1] on (SW[0]+SW[1]) ---
+[60010550000 ns] 7SEG: showing 1
+Showing: 1 (SW[1])
+
+--- SW[1] off (SW[0] only) ---
+[70016370000 ns] 7SEG: showing 0
+Showing: 0 (SW[0])
+
+--- SW[5] on (SW[0]+SW[5]) ---
+[80010950000 ns] 7SEG: showing 5
+Showing: 5 (SW[5])
+
+--- SW[9] on (SW[0]+SW[5]+SW[9]) ---
+[90006170000 ns] 7SEG: showing 9
+Showing: 9 (SW[9])
+
+--- SW[9] off (SW[0]+SW[5]) ---
+[100006110000 ns] 7SEG: showing 5
+Showing: 5 (SW[5])
+
+--- All off ---
+[110012350000 ns] 7SEG: blanked
+All switches off - display blanked
+
+=== Simulation complete ===
+Characters printed: 174
+LEDG = 000000001
+LEDR = 000000000000000000
+Trap = 0
