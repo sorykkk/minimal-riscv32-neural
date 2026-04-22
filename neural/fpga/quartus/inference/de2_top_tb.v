@@ -10,7 +10,8 @@ module de2_top_tb;
     wire [6:0]  HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, HEX6, HEX7;
 
     de2_top #(
-        .MEM_WORDS(12288)
+        .MEM_WORDS(12288),
+        .RESET_BITS(3)
     ) uut (
         .CLOCK_50(clk),
         .KEY(KEY),
@@ -81,13 +82,13 @@ module de2_top_tb;
         #2000;
         $display("[%0t ns] Reset active: LEDG=%b LEDR[17]=%b", $time, LEDG[0], LEDR[17]);
 
-        // Release reset - green LED should come on
+        // Release reset - wait for power-on reset counter
         KEY = 4'b0001;
         SW = 18'h0;
-        $display("[%0t ns] Reset released", $time);
+        $display("[%0t ns] Reset released (waiting for debounce counter)", $time);
 
-        // Wait for CPU to boot and enter polling loop (~5ms)
-        #10000000;
+        // Wait for reset counter + CPU boot
+        #5000000;
         $display("[%0t ns] CPU booted: LEDG=%b LEDR[17]=%b", $time, LEDG[0], LEDR[17]);
 
         // --- Test 1: SW[3] -> classify image 3 ---

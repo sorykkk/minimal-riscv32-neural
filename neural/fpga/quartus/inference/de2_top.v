@@ -41,7 +41,23 @@ module de2_top (
     // Clocking & Reset
     // -------------------------------------------------------
     wire clk = CLOCK_50;
-    wire resetn = KEY[0];
+
+    // Power-on reset generator + KEY[0] debounce.
+    // At FPGA configuration all regs are 0, so resetn starts LOW
+    // (active reset).  The counter counts up while KEY[0] is
+    // released (high).  resetn goes HIGH only after the counter
+    // saturates, which also filters mechanical key bounce.
+    // synthesis: 2^20 cycles (~21 ms at 50 MHz)
+    // simulation: 2^3 cycles (fast)
+    parameter RESET_BITS = 20; // synthesis value; testbench overrides to 3
+    reg [RESET_BITS:0] reset_cnt = 0;
+    always @(posedge clk) begin
+        if (!KEY[0])
+            reset_cnt <= 0;
+        else if (!reset_cnt[RESET_BITS])
+            reset_cnt <= reset_cnt + 1;
+    end
+    wire resetn = reset_cnt[RESET_BITS];
 
     // -------------------------------------------------------
     // CPU trap signal
@@ -125,9 +141,17 @@ module de2_top (
     // -------------------------------------------------------
     // Memory (M4K BRAM inferred by Quartus)
     // -------------------------------------------------------
-    (* ramstyle = "M4K" *)
+    // Synthesis: ram_init_file tells Quartus to initialise M4K blocks
+    //            from firmware.mif at configuration time.
+    // Simulation: $readmemh loads firmware.hex into the behavioural model.
+    // IMPORTANT: keep these separate so Quartus does not auto-generate a
+    //            conflicting .hdl.mif from the $readmemh initial block.
+    (* ramstyle = "M4K", ram_init_file = "firmware.mif" *)
     reg [31:0] memory [0:MEM_WORDS-1];
+
+    // synthesis translate_off
     initial $readmemh("firmware.hex", memory);
+    // synthesis translate_on
 
     wire [13:0] mem_word_addr = mem_addr[15:2];
     wire        mem_addr_is_ram = (mem_addr[31:16] == 0) && (mem_word_addr < MEM_WORDS);
@@ -203,6 +227,13 @@ module de2_top (
             else if (mem_addr == 32'h3000_000C && |mem_wstrb) begin
                 led_conf_reg <= mem_wdata[9:0];
                 mem_ready    <= 1;
+            end
+            else begin
+                // Unmapped address: complete the transaction so the
+                // CPU does not hang.  Reads get 0xFFFFFFFF.
+                m_read_data <= 32'hFFFFFFFF;
+                m_read_en   <= !mem_wstrb ? 1'b1 : 1'b0;
+                mem_ready   <= |mem_wstrb ? 1'b1 : 1'b0;
             end
         end
     end
